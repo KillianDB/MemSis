@@ -17,8 +17,9 @@ class Frame {
 public:
     int idFrame;
     std::optional<int> paginaAlocada; // Armazena o número da página ou std::nullopt se estiver vazio
+    int ultimoAcesso; //? Variavel global para armazenar último acesso para gerir trocas do LRU
 
-    Frame(int idFrame) : idFrame(idFrame), paginaAlocada(std::nullopt) {
+    Frame(int idFrame) : idFrame(idFrame), paginaAlocada(std::nullopt), ultimoAcesso(0) {
         // Dica para os alunos: vocês podem adicionar atributos aqui para ajudar no algoritmo (ex: timestamp, contador)
     }
 };
@@ -43,6 +44,7 @@ public:
         for (auto& frame : frames) {
             if (frame.paginaAlocada.has_value() && frame.paginaAlocada.value() == numeroPagina) {
                 // TODO: Se necessário para o algoritmo (ex: LRU), atualize metadados aqui.
+                frame.ultimoAcesso = totalAcessos; //? Registra o hit 
                 return {true, frame.idFrame}; // Retorna (Hit=True, frame_id)
             }
         }
@@ -55,6 +57,7 @@ public:
             if (!frame.paginaAlocada.has_value()) {
                 frame.paginaAlocada = numeroPagina;
                 // TODO: Se necessário para o algoritmo, inicialize metadados do frame aqui.
+                frame.ultimoAcesso = totalAcessos; //? Registra o ultimo acesso no caso de page fault
                 return {false, frame.idFrame}; // Retorna (Hit=False, frame_id)
             }
         }
