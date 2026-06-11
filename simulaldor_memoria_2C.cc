@@ -17,8 +17,9 @@ class Frame {
 public:
     int idFrame;
     std::optional<int> paginaAlocada; // Armazena o número da página ou std::nullopt se estiver vazio
+    int acessadoRecentemente; //? Variavel global para armazenar se o frame foi acessado recentemente para gerir trocas na fila (1 = True, 0 = False)
 
-    Frame(int idFrame) : idFrame(idFrame), paginaAlocada(std::nullopt) {
+    Frame(int idFrame) : idFrame(idFrame), paginaAlocada(std::nullopt), acessadoRecentemente(0) {
         // Dica para os alunos: vocês podem adicionar atributos aqui para ajudar no algoritmo (ex: timestamp, contador)
     }
 };
@@ -28,8 +29,9 @@ public:
     std::vector<Frame> frames;
     int totalPageFaults;
     int totalAcessos;
+    int ponteiroFrameAtual; //? Variável para gerenciar qual frame deve ser substituído na fila
 
-    TabelaPaginas(int numFrames) : totalPageFaults(0), totalAcessos(0) {
+    TabelaPaginas(int numFrames) : totalPageFaults(0), totalAcessos(0), ponteiroFrameAtual(0) {
         // Inicializa a memória física com a quantidade de frames especificada
         for (int i = 0; i < numFrames; ++i) {
             frames.emplace_back(i);
@@ -77,6 +79,28 @@ public:
 
         // Exemplo de atualização (substitua pela lógica real):
         // frames[frameEscolhidoId].paginaAlocada = novaPagina;
+        int numFrames = frames.size();
+
+        while (true) {
+            // Inspeciona o frame apontado pelo relógio
+            if (frames[ponteiroRelogio].bitReferencia == 1) {
+                // Segunda chance concedida: limpa o bit e avança o ponteiro circular
+                frames[ponteiroRelogio].bitReferencia = 0;
+                ponteiroRelogio = (ponteiroRelogio + 1) % numFrames;
+            } else {
+                // Vítima encontrada (bitReferencia == 0)
+                frameEscolhidoId = ponteiroRelogio;
+
+                // Substitui a página antiga pela nova e zera o bit dela
+                frames[frameEscolhidoId].paginaAlocada = novaPagina;
+                frames[frameEscolhidoId].bitReferencia = 0;
+
+                // O ponteiro avança para a próxima posição para a futura substituição
+                ponteiroRelogio = (ponteiroRelogio + 1) % numFrames;
+
+                return frameEscolhidoId;
+            }
+        }
 
         return frameEscolhidoId;
     }
