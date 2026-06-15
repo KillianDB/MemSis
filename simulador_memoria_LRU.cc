@@ -68,35 +68,29 @@ public:
     }
 
     int substituirPagina(int novaPagina) {
-        /**
-         * TODO: IMPLEMENTAR PELO GRUPO
-         * Esta função deve escolher uma página 'vítima' para ser substituída
-         * com base no algoritmo escolhido (FIFO ou LRU), atualizar o frame
-         * escolhido com a nova_pagina e retornar o ID do frame que foi alterado.
-         */
-        int frameEscolhidoId = 0;
-
-        // Escreva a lógica do algoritmo aqui...
-
-        // Exemplo de atualização (substitua pela lógica real):
-        // frames[frameEscolhidoId].paginaAlocada = novaPagina;
-
-        return frameEscolhidoId;
+        int frameVitimaIdx = 0;
+        for (int i = 1; i < (int)frames.size(); ++i) {
+            if (frames[i].ultimoAcesso < frames[frameVitimaIdx].ultimoAcesso) {
+                frameVitimaIdx = i;
+            }
+        }
+    frames[frameVitimaIdx].paginaAlocada = novaPagina;
+    frames[frameVitimaIdx].ultimoAcesso = totalAcessos;
+    return frames[frameVitimaIdx].idFrame;
+        
     }
 
     void imprimirMapaMemoria(int passo, int paginaAcessada, bool foiHit, std::optional<int> frameAlterado = std::nullopt) {
-        /**
-         * TODO: IMPLEMENTAR PELO GRUPO
-         * Esta função deve imprimir o estado atual da memória física (frames) no terminal,
-         * conforme o padrão visual exigido no enunciado do trabalho.
-         */
         std::string status = foiHit ? "Hit" : "Page Fault";
         std::cout << "\n--- Passo " << passo << ": Acesso à Página " << paginaAcessada << " (" << status << ") ---" << std::endl;
 
         // Exemplo de iteração sobre os frames para os alunos completarem o print:
         for (const auto& frame : frames) {
             std::string conteudo = frame.paginaAlocada.has_value() ? "Página " + std::to_string(frame.paginaAlocada.value()) : "[Vazio]";
-            std::string marcador = (frameAlterado.has_value() && frame.idFrame == frameAlterado.value() && !foiHit) ? " <-- Alterado" : "";
+            std::string marcador ="";
+            if (frameAlterado.has_value() && frame.idFrame == frameAlterado.value() && !foiHit) {
+                marcador = " <-- Alterado";
+            }
             std::cout << "[Frame " << frame.idFrame << "]: " << conteudo << marcador << std::endl;
         }
 
