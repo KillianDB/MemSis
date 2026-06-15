@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Mapa de Memória — Visualizador</title>
+<style>
+  :root{
+    --bg:#0e1116;
+    --panel:#161b22;
+    --frame-bg:#fdf4cf;
+    --frame-bg-empty:#1c2330;
+    --frame-border:#d8c48a;
+    --frame-border-empty:#30384a;
+    --fault:#e5484d;
+    --new:#259634;
+    --hit:#3fb950;
+    --text-dark:#3a2f1a;
+    --text-light:#c9d1d9;
+    --mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+    --sans: "Inter", "Segoe UI", sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    padding:40px 20px;
+    background:var(--bg);
+    color:var(--text-light);
+    font-family:var(--sans);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:20px;
+  }
+  h1{
+    font-size:1.4rem;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:#8b949e;
+    margin:0;
+    font-weight:600;
+    text-align:center;
+  }
+  h1 .algo{
+    color:#58a6ff;
+  }
+  .layout{
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+  }
+  .frames{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    width:340px;
+  }
+  .frame-row{
+    display:flex;
+    align-items:stretch;
+    gap:10px;
+  }
+  .frame-label{
+    width:64px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    font-family:var(--mono);
+    font-size:.85rem;
+    color:#58a6ff;
+    font-weight:600;
+  }
+  .frame-box{
+    flex:1;
+    min-height:58px;
+    border-radius:6px;
+    border:1.5px solid var(--frame-border-empty);
+    background:var(--frame-bg-empty);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:6px 12px;
+    position:relative;
+    transition:all .2s ease;
+  }
+  .frame-box.ocupado{
+    background:var(--frame-bg);
+    border-color:var(--frame-border);
+    color:var(--text-dark);
+  }
+  .frame-box.hit{
+    border-color:var(--hit);
+    box-shadow:0 0 0 2px rgba(63,185,80,.35);
+  }
+  .frame-box.vazio{
+    background-image:repeating-linear-gradient(45deg,#1c2330 0 8px,#222b3a 8px 16px);
+  }
+  .tag-fault{
+    color:var(--fault);
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:.7rem;
+    letter-spacing:.05em;
+    display:flex;
+    align-items:center;
+    gap:4px;
+    margin-bottom:2px;
+  }
+  .tag-fault::before{ content:"⚠"; }
+  .tag-hit{
+    color:var(--hit);
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:.7rem;
+    letter-spacing:.05em;
+    margin-bottom:2px;
+  }
+  .tag-hit::before{ content:"✓ "; }
+  .pagina-nome{
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:1rem;
+  }
+  .frame-box.vazio .pagina-nome{
+    color:#5a6577;
+    font-weight:500;
+    font-style:italic;
+  }
+  .bit-info{
+    font-family:var(--mono);
+    font-size:.7rem;
+    color:#6e5b2e;
+    margin-top:2px;
+  }
+  .new-badge{
+    position:absolute;
+    top:6px;
+    right:8px;
+    background:var(--new);
+    color:#fff;
+    font-family:var(--mono);
+    font-size:.6rem;
+    font-weight:700;
+    letter-spacing:.05em;
+    padding:2px 6px;
+    border-radius:4px;
+  }
+  .panel{
+    width:170px;
+    background:var(--panel);
+    border-radius:6px;
+    border:1px solid #30384a;
+    overflow:hidden;
+  }
+  .panel-head{
+    background:#1f6feb;
+    color:#fff;
+    font-family:var(--mono);
+    font-size:.75rem;
+    text-align:center;
+    padding:8px 6px;
+    line-height:1.3;
+    font-weight:600;
+  }
+  .panel-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 16px;
+    font-family:var(--mono);
+    font-size:.95rem;
+    border-bottom:1px solid #21283a;
+    height:58px;
+    box-sizing:border-box;
+  }
+  .panel-row:last-child{border-bottom:none;}
+  .panel-row .idx{color:#58a6ff;}
+  .panel-row .val{
+    background:#a8d4ff;
+    color:#0a2540;
+    font-weight:700;
+    border-radius:4px;
+    padding:2px 10px;
+    min-width:30px;
+    text-align:center;
+  }
+  .controls{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .controls button{
+    background:#21262d;
+    color:var(--text-light);
+    border:1px solid #30384a;
+    border-radius:6px;
+    padding:8px 18px;
+    font-family:var(--mono);
+    font-size:.85rem;
+    cursor:pointer;
+  }
+  .controls button:disabled{
+    opacity:.4;
+    cursor:not-allowed;
+  }
+  .controls button:hover:not(:disabled){background:#2d333b;}
+  .step-info{
+    font-family:var(--mono);
+    font-size:.85rem;
+    color:#8b949e;
+    text-align:center;
+  }
+  .stats{
+    font-family:var(--mono);
+    font-size:.8rem;
+    color:#8b949e;
+    text-align:center;
+  }
+  .progress{
+    width:100%;
+    max-width:520px;
+  }
+  .progress input{
+    width:100%;
+  }
+  .erro{
+    font-family:var(--mono);
+    color:var(--fault);
+    text-align:center;
+    max-width:520px;
+    line-height:1.6;
+  }
+  .secao-titulo{
+    font-size:1rem;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:#8b949e;
+    margin:0;
+    font-weight:600;
+    text-align:center;
+  }
+  .secao-final{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+  }
+  .secao-passo{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+  }
+  .colunas{
+    display:flex;
+    gap:32px;
+    align-items:flex-start;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  .divisor-vertical{
+    width:1px;
+    align-self:stretch;
+    background:#30384a;
+    min-height:200px;
+  }
+  /* Variante de cor para a coluna "Estado Final" */
+  .secao-final .frame-box.ocupado{
+    background:#d6e8ff;
+    border-color:#7fb3f5;
+    color:#1a2c45;
+  }
+  .secao-final .frame-box.vazio{
+    background-image:repeating-linear-gradient(45deg,#1c2330 0 8px,#1f2a3d 8px 16px);
+    border-color:#2a3850;
+  }
+  .secao-final .frame-box.hit{
+    border-color:var(--hit);
+    box-shadow:0 0 0 2px rgba(63,185,80,.35);
+  }
+  .secao-final .bit-info{
+    color:#3d5a85;
+  }
+  .secao-final .panel-row .val{
+    background:#7fb3f5;
+    color:#0a2540;
+  }
+  .secao-final .panel-head{
+    background:#3d6fd4;
+  }
+  @media (max-width: 760px){
+    .colunas{ flex-direction:column; align-items:center; }
+    .divisor-vertical{ width:100%; height:1px; min-height:0; }
+  }
+</style>
+</head>
+<body>
+
+<h1 id="titulo">Mapa de Memória</h1>
+
+<div class="colunas">
+  <section class="secao-passo">
+    <h2 class="secao-titulo">Passo a Passo</h2>
+    <div class="step-info" id="stepInfo"></div>
+
+    <div class="layout" id="layout">
+      <div class="frames" id="frames"></div>
+    </div>
+
+    <div class="progress">
+      <input type="range" id="slider" min="0" max="0" value="0" step="1">
+    </div>
+
+    <div class="controls">
+      <button id="btnAnterior" onclick="anterior()">&larr; Anterior</button>
+      <button id="btnProximo" onclick="proximo()">Próximo &rarr;</button>
+    </div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <div class="divisor-vertical"></div>
+
+  <section class="secao-final">
+    <h2 class="secao-titulo">Estado Final</h2>
+    <div class="layout">
+      <div class="frames" id="framesFinal"></div>
+    </div>
+    <div class="stats" id="statsFinal"></div>
+  </section>
+</div>
+
+<!-- Carrega dinamicamente o arquivo de dados gerado pelo simulador C++ correspondente -->
+<script>
+function erroCarregar(){
+  document.getElementById('layout').style.display = 'none';
+  document.querySelector('.secao-final').style.display = 'none';
+  document.querySelector('.divisor-vertical').style.display = 'none';
+  document.querySelectorAll('.secao-titulo')[1].style.display = 'none';
+  document.querySelector('.progress')?.remove();
+  document.querySelector('.controls').style.display = 'none';
+  document.getElementById('stepInfo').innerHTML =
+    '<div class="erro">Não foi possível carregar "dados_second_chance.js" ou "dados_lru.js".<br><br>' +
+    'Execute o simulador C++ correspondente (Second Chance ou LRU) na mesma pasta deste arquivo HTML — ' +
+    'ele gera o arquivo de dados automaticamente e abre esta página.</div>';
+}
+
+const ARQUIVOS_DADOS = ['dados_second_chance.js', 'dados_lru.js'];
+
+function carregarProximo(idx){
+  if (idx >= ARQUIVOS_DADOS.length) {
+    erroCarregar();
+    return;
+  }
+  const script = document.createElement('script');
+  script.src = ARQUIVOS_DADOS[idx];
+  script.onload = () => iniciar();
+  script.onerror = () => carregarProximo(idx + 1);
+  document.body.appendChild(script);
+}
+
+function iniciar(){
+  const { algoritmo, numFrames, taxaFaults, historico } = DADOS_SIMULACAO;
+  const usaBit = algoritmo.toLowerCase().includes('second') || algoritmo.toLowerCase().includes('chance') || algoritmo.toLowerCase().includes('clock');
+
+  document.getElementById('titulo').innerHTML =
+    `Mapa de Memória — Algoritmo <span class="algo">${algoritmo}</span>`;
+
+  const slider = document.getElementById('slider');
+  slider.max = historico.length - 1;
+
+  let passo = 0;
+
+  // Renderiza os frames e o painel lateral de um determinado estado (passo) nos elementos indicados
+  function renderEstado(estado, framesElId){
+    const framesDiv = document.getElementById(framesElId);
+    framesDiv.innerHTML = '';
+
+    estado.frames.forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'frame-row';
+
+      const label = document.createElement('div');
+      label.className = 'frame-label';
+      label.textContent = `Frame ${i}`;
+
+      const box = document.createElement('div');
+      const ocupado = f.pagina !== -1;
+      const isAlterado = estado.frameAlterado === i;
+      const isHit = estado.hit && ocupado && f.pagina === estado.pagina;
+
+      let classes = 'frame-box ' + (ocupado ? 'ocupado' : 'vazio');
+      if (isHit) classes += ' hit';
+      box.className = classes;
+
+      let html = '';
+      if (isAlterado && !estado.hit) {
+        html += `<div class="tag-fault">FAULT</div>`;
+      }
+      if (isHit) {
+        html += `<div class="tag-hit">Hit</div>`;
+      }
+      html += `<div class="pagina-nome">${ocupado ? 'Página ' + f.pagina : '[Vazio]'}</div>`;
+
+      if (ocupado && usaBit && 'bit' in f) {
+        html += `<div class="bit-info">bit=${f.bit}</div>`;
+      } else if (ocupado && 'ultimoAcesso' in f) {
+        html += `<div class="bit-info">último acesso=${f.ultimoAcesso}</div>`;
+      }
+
+      box.innerHTML = html;
+
+      if (isAlterado && estado.novo && !estado.hit) {
+        const badge = document.createElement('div');
+        badge.className = 'new-badge';
+        badge.textContent = 'Novo';
+        box.appendChild(badge);
+      }
+
+      row.appendChild(label);
+      row.appendChild(box);
+      framesDiv.appendChild(row);
+    });
+
+  }
+
+  function render(){
+    const estado = historico[passo];
+
+    renderEstado(estado, 'frames');
+
+    document.getElementById('stepInfo').textContent =
+      `Passo ${estado.passo}/${historico.length} — Acesso à Página ${estado.pagina} (${estado.hit ? 'Hit' : 'Page Fault'})`;
+
+    document.getElementById('stats').textContent =
+      `Total de Acessos: ${estado.acessos} | Total de Page Faults: ${estado.faults} | Taxa: ${(estado.faults/estado.acessos*100).toFixed(2)}%`;
+
+    slider.value = passo;
+    document.getElementById('btnAnterior').disabled = (passo === 0);
+    document.getElementById('btnProximo').disabled = (passo === historico.length - 1);
+  }
+
+  function proximo(){ if(passo < historico.length-1){ passo++; render(); } }
+  function anterior(){ if(passo > 0){ passo--; render(); } }
+
+  // Expõe no escopo global para os botões com onclick="proximo()"/"anterior()" funcionarem
+  window.proximo = proximo;
+  window.anterior = anterior;
+
+  slider.addEventListener('input', () => {
+    passo = parseInt(slider.value, 10);
+    render();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') proximo();
+    if (e.key === 'ArrowLeft') anterior();
+  });
+
+  // Renderiza o estado final (fixo, sempre visível)
+  const estadoFinal = historico[historico.length - 1];
+  renderEstado(estadoFinal, 'framesFinal');
+  document.getElementById('statsFinal').textContent =
+    `Total de Acessos: ${estadoFinal.acessos} | Total de Page Faults: ${estadoFinal.faults} | Taxa: ${(estadoFinal.faults/estadoFinal.acessos*100).toFixed(2)}%`;
+
+  // Renderiza o passo a passo (inicia no primeiro passo)
+  render();
+}
+
+carregarProximo(0);
+</script>
+</body>
+</html>
