@@ -16,6 +16,7 @@
 class Frame {
 public:
     int idFrame;
+    int bitReferencia = 0;
     std::optional<int> paginaAlocada; // Armazena o número da página ou std::nullopt se estiver vazio
     int acessadoRecentemente; //? Variavel global para armazenar se o frame foi acessado recentemente para gerir trocas na fila (1 = True, 0 = False)
 
@@ -30,6 +31,7 @@ public:
     int totalPageFaults;
     int totalAcessos;
     int ponteiroFrameAtual; //? Variável para gerenciar qual frame deve ser substituído na fila
+    int ponteiroRelogio = 0;
 
     TabelaPaginas(int numFrames) : totalPageFaults(0), totalAcessos(0), ponteiroFrameAtual(0) {
         // Inicializa a memória física com a quantidade de frames especificada
@@ -41,30 +43,28 @@ public:
     std::pair<bool, int> acessarPagina(int numeroPagina) {
         totalAcessos++;
 
-        // 1. Verificar se a página já está em algum frame (Hit)
         for (auto& frame : frames) {
             if (frame.paginaAlocada.has_value() && frame.paginaAlocada.value() == numeroPagina) {
-                // TODO: Se necessário para o algoritmo (ex: LRU), atualize metadados aqui.
-                return {true, frame.idFrame}; // Retorna (Hit=True, frame_id)
+                frame.bitReferencia = 1;
+                return {true, frame.idFrame};
             }
         }
 
-        // 2. Se não encontrou, ocorreu um Page Fault!
         totalPageFaults++;
 
-        // 3. Verificar se existe algum frame vazio disponível
         for (auto& frame : frames) {
             if (!frame.paginaAlocada.has_value()) {
                 frame.paginaAlocada = numeroPagina;
-                // TODO: Se necessário para o algoritmo, inicialize metadados do frame aqui.
-                return {false, frame.idFrame}; // Retorna (Hit=False, frame_id)
+                frame.bitReferencia = 1;
+                return {false, frame.idFrame};
             }
         }
 
-        // 4. Memória cheia: Aplicar algoritmo de substituição de página
         int frameVitimaId = substituirPagina(numeroPagina);
         return {false, frameVitimaId};
     }
+
+    
 
     int substituirPagina(int novaPagina) {
         /**
@@ -106,19 +106,23 @@ public:
     }
 
     void imprimirMapaMemoria(int passo, int paginaAcessada, bool foiHit, std::optional<int> frameAlterado = std::nullopt) {
-        /**
-         * TODO: IMPLEMENTAR PELO GRUPO
-         * Esta função deve imprimir o estado atual da memória física (frames) no terminal,
-         * conforme o padrão visual exigido no enunciado do trabalho.
-         */
         std::string status = foiHit ? "Hit" : "Page Fault";
         std::cout << "\n--- Passo " << passo << ": Acesso à Página " << paginaAcessada << " (" << status << ") ---" << std::endl;
 
-        // Exemplo de iteração sobre os frames para os alunos completarem o print:
         for (const auto& frame : frames) {
-            std::string conteudo = frame.paginaAlocada.has_value() ? "Página " + std::to_string(frame.paginaAlocada.value()) : "[Vazio]";
-            std::string marcador = (frameAlterado.has_value() && frame.idFrame == frameAlterado.value() && !foiHit) ? " <-- Alterado" : "";
-            std::cout << "[Frame " << frame.idFrame << "]: " << conteudo << marcador << std::endl;
+            std::string conteudo = frame.paginaAlocada.has_value()
+                ? "Página " + std::to_string(frame.paginaAlocada.value())
+                : "[Vazio]";
+
+            std::string bitInfo = frame.paginaAlocada.has_value()
+                ? " (bit=" + std::to_string(frame.bitReferencia) + ")"
+                : "";
+
+            std::string marcador = (frameAlterado.has_value() && frame.idFrame == frameAlterado.value() && !foiHit)
+                ? " <-- Alterado"
+                : "";
+
+            std::cout << "[Frame " << frame.idFrame << "]: " << conteudo << bitInfo << marcador << std::endl;
         }
 
         std::cout << std::string(40, '-') << std::endl;
