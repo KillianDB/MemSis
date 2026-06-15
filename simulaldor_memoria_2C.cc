@@ -16,7 +16,6 @@
 class Frame {
 public:
     int idFrame;
-    int bitReferencia = 0;
     std::optional<int> paginaAlocada; // Armazena o número da página ou std::nullopt se estiver vazio
     int acessadoRecentemente; //? Variavel global para armazenar se o frame foi acessado recentemente para gerir trocas na fila (1 = True, 0 = False)
 
@@ -45,7 +44,7 @@ public:
 
         for (auto& frame : frames) {
             if (frame.paginaAlocada.has_value() && frame.paginaAlocada.value() == numeroPagina) {
-                frame.bitReferencia = 1;
+                frame.acessadoRecentemente = 1;
                 return {true, frame.idFrame};
             }
         }
@@ -55,7 +54,7 @@ public:
         for (auto& frame : frames) {
             if (!frame.paginaAlocada.has_value()) {
                 frame.paginaAlocada = numeroPagina;
-                frame.bitReferencia = 1;
+                frame.acessadoRecentemente = 1;
                 return {false, frame.idFrame};
             }
         }
@@ -83,17 +82,17 @@ public:
 
         while (true) {
             // Inspeciona o frame apontado pelo relógio
-            if (frames[ponteiroRelogio].bitReferencia == 1) {
+            if (frames[ponteiroRelogio].acessadoRecentemente == 1) {
                 // Segunda chance concedida: limpa o bit e avança o ponteiro circular
-                frames[ponteiroRelogio].bitReferencia = 0;
+                frames[ponteiroRelogio].acessadoRecentemente = 0;
                 ponteiroRelogio = (ponteiroRelogio + 1) % numFrames;
             } else {
-                // Vítima encontrada (bitReferencia == 0)
+                // Vítima encontrada (acessadoRecentemente == 0)
                 frameEscolhidoId = ponteiroRelogio;
 
                 // Substitui a página antiga pela nova e zera o bit dela
                 frames[frameEscolhidoId].paginaAlocada = novaPagina;
-                frames[frameEscolhidoId].bitReferencia = 0;
+                frames[frameEscolhidoId].acessadoRecentemente = 1;
 
                 // O ponteiro avança para a próxima posição para a futura substituição
                 ponteiroRelogio = (ponteiroRelogio + 1) % numFrames;
@@ -115,7 +114,7 @@ public:
                 : "[Vazio]";
 
             std::string bitInfo = frame.paginaAlocada.has_value()
-                ? " (bit=" + std::to_string(frame.bitReferencia) + ")"
+                ? " (bit=" + std::to_string(frame.acessadoRecentemente) + ")"
                 : "";
 
             std::string marcador = (frameAlterado.has_value() && frame.idFrame == frameAlterado.value() && !foiHit)
