@@ -46,3 +46,29 @@ Os principais módulos e estruturas lógicas do simulador incluem:
 * **Loop de Execução:** Interpretador de sequências de entrada que processa a fila de requisições sequencialmente.
 
 ---
+
+## _Resultados com_ _**LRU** :_ 
+
+![Resultados 1 e 2 - LRU](image1-LRU.png)
+![Resultados 3 e 4 - LRU](image2-LRU.png)
+![Resultados 5 e 6 - LRU](image3-LRU.png)
+![Resultados 7 e 8 - LRU](image4-LRU.png)
+![Resultados 9 e 10 - LRU](image5-LRU.png)
+![Resultados 11 e 12 - LRU](image6-LRU.png)
+
+## _Resultados com_ _**Second Chance** :_ 
+
+![Resultados 1 e 2 - 2C](image1-2C.png)
+![Resultados 3 e 4 - 2C](image2-2C.png)
+![Resultados 5 e 6 - 2C](image3-2C.png)
+![Resultados 7 e 8 - 2C](image4-2C.png)
+![Resultados 9 e 10 - 2C](image5-2C.png)
+![Resultados 11 e 12 - 2C](image6-2C.png)
+
+---
+
+## **REFERÊNCIAS** 
+
+• Repositório fonte do projeto Disponível em: https://github.com/ProfessorFilipo/MemSim/tree/main 
+• Repositório criado pelo grupo Disponível em: https://github.com/KillianDB/MemSis 
+• Operating System Concepts - Abraham Silberchatz, 9ª edição. 
